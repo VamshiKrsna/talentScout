@@ -1,27 +1,27 @@
 # System Prompt : 
 SYSTEM_PROMPT = """
 You are TalentScout's AI Hiring Assistant, designed to conduct initial candidate screenings for technical positions. Your role is to:
-1. Gather candidate information professionally and systematically
-2. Assess technical skills through relevant questions
-3. Maintain a friendly, professional tone
-4. Stay focused on the hiring process
+1. Gather candidate information in a friendly, conversational tone, step by step
+2. Assess technical skills through relevant, engaging questions
+3. Adapt to the candidate's responses and guide the conversation naturally
+4. Ensure the candidate feels comfortable and valued during the process
+5. Stay focused on the hiring process and be clear in your purpose
 
 When generating technical questions:
 - Adapt difficulty based on stated years of experience
-- Focus on practical, real-world scenarios
-- Cover both fundamentals and advanced concepts
-- Ask one question at a time, waiting for response
-- Provide follow-up questions based on candidate's answers
-- Ensure questions are relevant to current industry practices
-- Include a mix of conceptual understanding and problem-solving
+- Focus on real-world scenarios and practical applications
+- Ask one question at a time and wait for their response
+- Provide thoughtful follow-up questions based on their answers
+- Keep questions relevant to current industry practices
+- Balance between conceptual understanding and problem-solving
 
-Follow these guidelines:
-- Ask one question at a time
-- Validate responses before proceeding
-- Be concise but thorough
-- Handle sensitive information appropriately
-- End conversations gracefully when requested
+Guidelines:
+- Always validate responses before proceeding
+- Be concise, clear, and encouraging
+- Handle sensitive information with care and confidentiality
+- End conversations gracefully with a thank-you message and clear next steps
 """
+
 
 def create_interview_prompt(user_input, current_stage):
     """Create context-aware prompts based on conversation stage"""
@@ -30,41 +30,44 @@ def create_interview_prompt(user_input, current_stage):
         "name": {
             "validation": "Extract the candidate's name from their response.",
             "next_question": """
-            Thank you! Now, I'd like to gather some essential information:
-            - Your email address
-            - Phone number
-            - Years of experience
-            - Current location
-            - Desired position
-            
-            Please provide these details.
+            Thank you! It’s great to meet you. 
+            Could you please share your email address so we can keep in touch? 
             """
         },
-        "collecting_info": {
-            "validation": """
-            Parse the provided information and validate:
-            - Email format
-            - Phone number format
-            - Experience (numeric)
-            - Location (non-empty)
-            - Desired position (non-empty)
-            
-            Return as JSON.
-            """,
+        "email": {
+            "validation": "Validate the email format provided by the candidate.",
             "next_question": """
-            Excellent! Now, please tell me about your technical skills. 
-            What programming languages, frameworks, databases, and tools 
-            are you proficient in? Please be specific about your experience 
-            level with each.
+            Thanks for sharing your email! May I have your phone number as well? 
+            This will help us contact you easily if needed.
             """
         },
-        "tech_stack": {
-            "validation": "Extract and categorize the technical skills mentioned.",
+        "phone": {
+            "validation": "Validate the phone number format provided by the candidate.",
             "next_question": """
-            Thank you for sharing your technical background. I'll now ask you 
-            some targeted questions to better understand your expertise. 
-            Each question will focus on practical scenarios and real-world 
-            applications. Are you ready to begin the technical assessment?
+            Awesome! How many years of professional experience do you have? 
+            A rough estimate is fine!
+            """
+        },
+        "experience": {
+            "validation": "Check if the years of experience provided are valid (numeric).",
+            "next_question": """
+            That’s great! Could you tell me your current location (city, state, or country)? 
+            This helps us understand your availability for local opportunities.
+            """
+        },
+        "location": {
+            "validation": "Ensure the location is not empty.",
+            "next_question": """
+            Fantastic! Finally, what position are you interested in? 
+            Feel free to mention specific roles or types of jobs you’re aiming for.
+            """
+        },
+        "position": {
+            "validation": "Ensure the desired position provided is valid and non-empty.",
+            "next_question": """
+            Thank you for providing all your details! Next, let’s talk about your technical skills. 
+            What programming languages, frameworks, databases, or tools are you proficient in? 
+            Please be as specific as possible.
             """
         }
     }
@@ -81,26 +84,29 @@ def create_interview_prompt(user_input, current_stage):
     If invalid, ask for clarification on the missing or incorrect information.
     """
 
+
 def create_tech_assessment_prompt(user_input, candidate_data):
     """Generate technical assessment questions based on declared skills"""
     return f"""
-    Based on the candidate's background:
-    - Tech stack: {candidate_data.get('tech_stack', [])}
+    Based on what you’ve shared so far:
+    - Tech stack: {', '.join(candidate_data.get('tech_stack', [])) if candidate_data.get('tech_stack') else "No tech stack provided yet"}
     - Years of experience: {candidate_data.get('experience', 'Not specified')}
     - Previous response: {user_input}
     
+    Let’s dive into some technical questions! Here’s one for you: 
+    
     Generate a single, relevant technical question that:
     1. Matches their experience level
-    2. Focuses on practical application
+    2. Focuses on practical, real-world applications
     3. Tests both theoretical understanding and problem-solving
-    4. Encourages detailed explanations
+    4. Encourages detailed but approachable explanations
     5. Relates to current industry practices
     
-    If their previous response was to a technical question:
-    1. Evaluate their understanding
-    2. Ask relevant follow-up questions if needed
-    3. Progress to a new topic if they demonstrated good understanding
+    If they answered a previous question:
+    1. Evaluate their understanding in a positive and supportive tone.
+    2. If needed, ask a follow-up question to clarify or explore their response.
+    3. Progress to a new topic if they’ve demonstrated good understanding.
     
     Frame the question conversationally and professionally.
-    Wait for their response before asking the next question.
+    Wait for their response before continuing to the next question.
     """
