@@ -1,0 +1,21 @@
+{
+    "name": "Vamshi",
+    "email": "vamshi@yahoo.com",
+    "phone": "",
+    "experience": "2",
+    "position": "ML Engineer",
+    "location": "bangalore",
+    "tech_stack": [],
+    "interview": {
+        "questions": [
+            "Can you explain the concept of decorators in Python?",
+            "How do you handle exceptions in Langchain?",
+            "Can you provide an example of how you would use Langchain to create a simple chatbot?\n\nPlease answer each question briefly and to the best of your ability."
+        ],
+        "answers": [
+            "Python, Langchain",
+            "I don't know any of them."
+        ]
+    },
+    "evaluation_summary": ""
+}

@@ -1,3 +1,5 @@
+# PERFECT : ALMOST, It is working well and storing most of the data, need to debug 
+# why the model isn't giving a summary based on quiz answers.
 import streamlit as st
 import google.generativeai as genai
 import json
@@ -9,11 +11,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# config gemini
+# Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
-# initialzing the model
+# Initialize the model
 model = genai.GenerativeModel('gemini-pro')
 
 def init_session_state():
@@ -24,66 +26,120 @@ def init_session_state():
         st.session_state.chat = model.start_chat(history=[])
     if "candidate_data" not in st.session_state:
         st.session_state.candidate_data = {
-            "name": None,
-            "email": None,
-            "phone": None,
-            "experience": None,
-            "position": None,
-            "location": None,
-            "tech_stack": None,
+            "name": "",
+            "email": "",
+            "phone": "",
+            "experience": "",
+            "position": "",
+            "location": "",
+            "tech_stack": [],
             "interview": {
                 "questions": [],
                 "answers": []
             },
-            "evaluation_summary": None
+            "evaluation_summary": ""
         }
     if "interview_complete" not in st.session_state:
         st.session_state.interview_complete = False
 
-def generate_evaluation_summary(candidate_data: Dict) -> str:
-    """Generate an AI evaluation summary of the candidate"""
-    evaluation_prompt = f"""
-    Based on the candidate's information:
-    - Experience: {candidate_data['experience']}
-    - Position: {candidate_data['position']}
-    - Tech Stack: {candidate_data['tech_stack']}
-    - Interview Questions: {json.dumps(candidate_data['interview']['questions'])}
-    - Interview Answers: {json.dumps(candidate_data['interview']['answers'])}
+def extract_candidate_info(response: str, current_data: Dict) -> Dict:
+    """Extract candidate information from conversation using AI"""
+    extraction_prompt = f"""
+    From this conversation message, extract the following information if present:
+    1. Name
+    2. Email
+    3. Phone
+    4. Years of experience
+    5. Position/role they're applying for
+    6. Location
+    7. Tech stack/skills mentioned
 
-    Provide a single-line evaluation summary (max 100 characters) that considers:
-    1. Experience relevance to position
-    2. Technical knowledge demonstrated
-    3. Overall fit for the role
-    
-    Format: Just return the evaluation summary, nothing else.
+    Current data: {json.dumps(current_data)}
+    Message: {response}
+
+    Return only a JSON object with any new information found. If a field isn't found in the message, don't include it in the JSON.
     """
     
-    response = model.generate_content(evaluation_prompt)
-    return response.text.strip()
+    try:
+        response = model.generate_content(extraction_prompt)
+        new_info = json.loads(response.text)
+        
+        # Update current data with new information
+        for key, value in new_info.items():
+            if value and not current_data.get(key):  # Only update if new value exists and current is empty
+                if key == "tech_stack" and isinstance(value, str):
+                    current_data[key] = [tech.strip() for tech in value.split(",")]
+                else:
+                    current_data[key] = value
+        
+        return current_data
+    except:
+        return current_data
 
-def extract_info_from_response(response: str, candidate_data: Dict) -> Dict:
-    """Extract and validate information from responses"""
-    # verify and look for email
-    email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', response)
-    if email_match and candidate_data["email"] is None:
-        email = email_match.group(0)
-        if validate_email(email):
-            candidate_data["email"] = email
+def generate_evaluation_summary(candidate_data: Dict) -> str:
+    """Generate an AI evaluation summary of the candidate"""
+    if not candidate_data["experience"] or not candidate_data["tech_stack"]:
+        return ""
+        
+    evaluation_prompt = f"""
+    Evaluate the candidate based on:
+    
+    Background:
+    - Experience: {candidate_data['experience']}
+    - Position: {candidate_data['position']}
+    - Tech Stack: {', '.join(candidate_data['tech_stack']) if isinstance(candidate_data['tech_stack'], list) else candidate_data['tech_stack']}
+    
+    Interview Performance:
+    Questions and Answers:
+    {json.dumps(dict(zip(candidate_data['interview']['questions'], candidate_data['interview']['answers'])), indent=2)}
 
-    # verify and look for phone number
-    phone_match = re.search(r'\+?1?\d{9,15}', response)
-    if phone_match and candidate_data["phone"] is None:
-        phone = phone_match.group(0)
-        if validate_phone(phone):
-            candidate_data["phone"] = phone
+    Provide a SINGLE LINE evaluation summary (maximum 100 characters) that assesses:
+    1. Experience relevance
+    2. Technical knowledge
+    3. Overall suitability
+    
+    Format: Return only the evaluation summary, nothing else.
+    """
+    
+    try:
+        response = model.generate_content(evaluation_prompt)
+        return response.text.strip()
+    except:
+        return ""
 
-    return candidate_data
+def save_candidate_data(data: Dict):
+    """Save candidate data to a JSON file with evaluation"""
+    # Clean the data - replace None/null values with empty strings
+    cleaned_data = data.copy()
+    for key in cleaned_data:
+        if cleaned_data[key] is None:
+            cleaned_data[key] = "" if key != "tech_stack" else []
+    
+    # Generate evaluation summary if we have enough data
+    if not cleaned_data["evaluation_summary"]:
+        cleaned_data["evaluation_summary"] = generate_evaluation_summary(cleaned_data)
+    
+    # Format timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Create filename using candidate name or email
+    name_part = cleaned_data['name'].replace(' ', '_') if cleaned_data['name'] else cleaned_data['email'].split('@')[0]
+    filename = f"{name_part}_{timestamp}_interview.json"
+    filename = ''.join(c for c in filename if c.isalnum() or c in ['_', '-', '.'])  # Clean filename
+    
+    if not os.path.exists("candidates"):
+        os.makedirs("candidates")
+    
+    filepath = os.path.join("candidates", filename)
+    
+    # Save formatted JSON
+    with open(filepath, 'w') as f:
+        json.dump(cleaned_data, f, indent=4)
 
-def extract_tech_questions(response: str) -> str:
+def extract_tech_questions(response: str) -> list:
     """Extract technical questions from AI response"""
-    # Look for numbered questions in the response
-    questions = re.findall(r'\d+\.\s*(.*?(?=\d+\.|$))', response, re.DOTALL)
-    return [q.strip() for q in questions if q.strip()]
+    questions = re.findall(r'\d+\.\s*(.*?)(?=\d+\.|$)', response, re.DOTALL)
+    return [q.strip() for q in questions if q.strip() and '?' in q]
 
 def save_candidate_data(data: Dict):
     """Save candidate data to a JSON file with evaluation"""
@@ -146,64 +202,70 @@ def validate_phone(phone: str) -> bool:
 def main():
     st.title("TalentScout Hiring Assistant")
     
-    # intializing chat session state
+    # Initialize session state
     init_session_state()
     
-    # displaying chat messages
+    # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
     
-    # If first message, send the initial prompt
+    # If it's the first message, send the initial prompt
     if not st.session_state.messages:
         response = st.session_state.chat.send_message(get_initial_prompt())
         with st.chat_message("assistant"):
             st.write(response.text)
         st.session_state.messages.append({"role": "assistant", "content": response.text})
     
-    # user input
+    # Get user input
     if user_input := st.chat_input("Type your message here..."):
+        # Display user message
         with st.chat_message("user"):
             st.write(user_input)
         
-        # adding user message to history
+        # Add user message to history
         st.session_state.messages.append({"role": "user", "content": user_input})
         
-        st.session_state.candidate_data = extract_info_from_response(
+        # Extract information from user input using AI
+        st.session_state.candidate_data = extract_candidate_info(
             user_input, 
             st.session_state.candidate_data
         )
         
-        # contextual prompt for Gemini
+        # Generate contextual prompt for Gemini
         context = f"""Previous candidate data: {json.dumps(st.session_state.candidate_data)}
         Remember to:
         1. Acknowledge any information shared
         2. Ask for missing information naturally
         3. Generate technical questions if tech stack is provided and questions haven't been asked
-        4. Mark interview as complete if all information is gathered and technical questions are answered
+        4. Mark interview as complete by saying "INTERVIEW COMPLETE" if:
+           - All basic information is collected
+           - At least 3 technical questions have been asked and answered
         5. Stay conversational and friendly
         6. Number your technical questions (1., 2., 3.)"""
         
-        # AI responses
+        # Get AI response
         response = st.session_state.chat.send_message(
             f"{context}\n\nUser message: {user_input}"
         )
         
-        # extract technical questions if present in response
+        # Extract technical questions if present in response
         questions = extract_tech_questions(response.text)
         if questions:
             st.session_state.candidate_data["interview"]["questions"].extend(questions)
         
-        #  if answered to a technical question, store it
+        # If this is an answer to a technical question, store it
         if st.session_state.candidate_data["interview"]["questions"] and len(st.session_state.candidate_data["interview"]["questions"]) > len(st.session_state.candidate_data["interview"]["answers"]):
             st.session_state.candidate_data["interview"]["answers"].append(user_input)
         
+        # Display assistant response
         with st.chat_message("assistant"):
             st.write(response.text)
         
+        # Add assistant response to history
         st.session_state.messages.append({"role": "assistant", "content": response.text})
         
-        # check for INTERVIEW COMPLETE Flag and save data if found
+        # Check if interview is complete and save data
         if "INTERVIEW COMPLETE" in response.text and not st.session_state.interview_complete:
             save_candidate_data(st.session_state.candidate_data)
             st.session_state.interview_complete = True

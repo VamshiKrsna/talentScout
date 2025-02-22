@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # system prompt (overall chatbot introduction)
 SYSTEM_PROMPT = """
 You are TalentScout's AI Hiring Assistant, designed to conduct initial candidate screenings for technical positions. 
@@ -22,7 +21,6 @@ def create_interview_prompt(user_input,current_stage):
     Context-aware prompting based on conversation stage
     """
     stage_prompts = {}
-=======
 # System Prompt : 
 SYSTEM_PROMPT = """
 You are TalentScout's AI Hiring Assistant, designed to conduct initial candidate screenings for technical positions. Your role is to:
@@ -135,4 +133,3 @@ def create_tech_assessment_prompt(user_input, candidate_data):
     Frame the question conversationally and professionally.
     Wait for their response before continuing to the next question.
     """
->>>>>>> 063794144f433949122e92ebd42f0a7276e627c8

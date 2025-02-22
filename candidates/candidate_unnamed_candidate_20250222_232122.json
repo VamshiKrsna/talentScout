@@ -1,0 +1,22 @@
+{
+    "name": null,
+    "email": "vamshi@yahoo.com",
+    "phone": "1234567890",
+    "experience": null,
+    "position": null,
+    "location": null,
+    "tech_stack": null,
+    "interview": {
+        "questions": [
+            "Can you explain the concept of backpropagation in neural networks?",
+            "How would you handle missing values in a dataset when training a machine learning model?",
+            "What are the key differences between supervised and unsupervised learning algorithms?\n\nPlease answer these questions to the best of your ability."
+        ],
+        "answers": [
+            "I have experience in Python, Tensorflow, Langchain.",
+            "1. backpropagation is the process of adjusting weights of neurons while moving forward and backward by achieving local minima everytime.\n2. Drop the columns if the missing values are over 90%, else investigate and fill them in through mean, mode, etc.\n3. I dont know this one.",
+            "I want to work as an AI Engineer at bangalore."
+        ]
+    },
+    "evaluation_summary": null
+}
