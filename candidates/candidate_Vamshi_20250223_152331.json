@@ -1,0 +1,23 @@
+{
+    "name": "Vamshi",
+    "email": "vamshi@yahoo.com",
+    "phone": "",
+    "experience": "1 year",
+    "position": "",
+    "location": "",
+    "tech_stack": [
+        "Python",
+        "Langchain"
+    ],
+    "interview": {
+        "questions": [
+            "Can you explain the concept of data preprocessing in machine learning?",
+            "How do you handle missing values in a dataset, and what methods do you prefer?",
+            "Can you describe a machine learning project you've worked on that involved natural language processing?\n\nPlease feel free to ask any questions you may have during the process. \ud83d\ude0a\n\nINTERVIEW COMPLETE"
+        ],
+        "answers": [
+            "I prefer Python, Langchain."
+        ]
+    },
+    "evaluation_summary": "Candidate has limited experience and technical knowledge in machine learning, not suitable for the role."
+}
